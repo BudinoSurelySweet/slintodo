@@ -1,0 +1,11 @@
+[package]
+name = "todo_gui"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# Remove the live-preview feature when put the release
+slint = { version = "1.16.1", features = ["live-preview"] }
+
+[build-dependencies]
+slint-build = "1.16.0"

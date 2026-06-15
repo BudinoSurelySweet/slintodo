@@ -1,0 +1,225 @@
+import { Button, CheckBox, ScrollView } from "std-widgets.slint";
+
+component ToDo {
+    in property <int> id;
+    in property <string> text;
+    in property <bool> completed;
+
+    callback toggled(bool);
+
+    HorizontalLayout {
+        height: 25px;
+        spacing: 10px;
+
+        CheckBox {
+            height: 20px;
+            width: self.height;
+            checked: completed;
+
+            toggled => {
+                root.toggled(self.checked);
+            }
+        }
+
+        Text {
+            text: root.text;
+            font-size: 16px;
+
+            horizontal-alignment: left;
+            vertical-alignment: center;
+        }
+    }
+}
+
+component Header {
+    in property <string> text;
+
+    Text {
+        text: root.text;
+        font-size: 24px;
+        horizontal-alignment: center;
+    }
+}
+
+component Separator {
+    Rectangle {
+        background: #444;
+        height: 1px;
+    }
+}
+
+component ToDoList {
+    in property <[ { id: int, text: string}]> list;
+    in property <bool> all-completed: false;
+
+    callback complete-todo(id: int, text: string);
+    callback restore-todo(id: int, text: string);
+
+    VerticalLayout {
+        spacing: 10px;
+
+        for info in root.list: ToDo {
+            id: info.id;
+            text: info.text;
+            completed: all-completed;
+
+            toggled(t) => {
+                t ? complete-todo(self.id, self.text) : restore-todo(self.id, self.text);
+            }
+        }
+    }
+}
+
+component InsertSection {
+    in-out property <[{ id: int, text: string}]> todo-info;
+
+    callback insert-todo(text: string);
+    callback complete-todo(id: int, text: string);
+
+    VerticalLayout {
+        spacing: 20px;
+
+        Header {
+            text: "Things to do...";
+        }
+
+        // Input
+		Rectangle {
+            border-color: #333;
+            border-width: 1px;
+
+            TextInput {
+                font-size: 16px;
+                min-height: 32px;
+                text-cursor-width: 2px;
+                vertical-alignment: center;
+
+                accepted => {
+                    root.insert_todo(self.text);
+                    self.text = "";
+                }
+            }
+        }
+
+        if root.todo-info.length == 0: StyledText {
+            horizontal-alignment: center;
+
+            text: @markdown("*Empty*");
+        }
+
+        ToDoList {
+            list: root.todo-info;
+
+            complete-todo(id, text) => {
+                root.complete-todo(id, text);
+            }
+        }
+    }
+}
+
+component CompletedSection {
+    in-out property <[{ id: int, text: string}]> completed-todo-info;
+
+    callback restore-todo(id: int, text: string);
+    callback delete-all-completed();
+    callback restore-all-completed();
+
+    VerticalLayout {
+        spacing: 30px;
+
+        Separator { }
+
+        Header {
+            text: "Completed ToDos";
+        }
+
+        HorizontalLayout {
+            spacing: 20px;
+
+            Button {
+                primary: true;
+                text: "Delete";
+
+                clicked => {
+                    root.delete-all-completed();
+                }
+            }
+
+            Button {
+                text: "Restore";
+
+                clicked => {
+                    root.restore-all-completed();
+                }
+            }
+        }
+
+        ToDoList {
+            list: root.completed-todo-info;
+            all-completed: true;
+
+            restore-todo(id, text) => {
+                root.restore-todo(id, text);
+            }
+        }
+    }
+}
+
+export component App inherits Window {
+    min-width: 500px;
+    min-height: 300px;
+
+    in-out property <[{ id: int, text: string}]> todo-info;
+    in-out property <[{ id: int, text: string}]> completed-todo-info;
+
+    callback insert-todo(text: string);
+    callback complete-todo(id: int, text: string);
+    callback restore-todo(id: int, text: string);
+    callback delete-all-completed();
+    callback restore-all-completed();
+
+    Rectangle {
+        background: #222;
+    }
+
+    ScrollView {
+        HorizontalLayout {
+            alignment: center;
+
+            VerticalLayout {
+                min-width: 400px;
+                spacing: 30px;
+                padding-top: 100px;
+                alignment: start;
+
+                InsertSection {
+                    todo-info: root.todo-info;
+
+                    insert-todo(text) => {
+                        root.insert-todo(text);
+                    }
+                    complete-todo(id, text) => {
+                        root.complete-todo(id, text);
+                    }
+                }
+
+                CompletedSection {
+                    completed-todo-info: root.completed-todo-info;
+                    opacity: completed-todo-info.length > 0 ? 1.0 : 0.0;
+
+                    restore-todo(id, text) => {
+                        root.restore-todo(id, text);
+                    }
+                    delete-all-completed() => {
+                        root.delete-all-completed();
+                    }
+                    restore-all-completed() => {
+                        root.restore-all-completed();
+                    }
+
+                    animate opacity { duration: 100ms; }
+                }
+            }
+        }
+    }
+}
